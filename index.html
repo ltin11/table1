@@ -141,17 +141,78 @@
 
         <!-- Три графика -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- График температуры -->
-            <div class="rounded-xl tech-border p-4">
-                <h3 class="text-md font-semibold mb-3 flex items-center gap-2 justify-between">
-                    <span><i data-lucide="thermometer" style="color: #ff6b1a;" class="w-4 h-4 inline"></i> Температура T(h)</span>
-                </h3>
-                <div class="check-group">
-                    <label class="param-checkbox"><input type="checkbox" id="tempC" checked> <span>°C</span></label>
-                    <label class="param-checkbox"><input type="checkbox" id="tempK"> <span>K</span></label>
-                </div>
-                <div class="chart-container mt-3"><canvas id="tempChart"></canvas></div>
-            </div>
+                        // График температуры
+            const showTempC = document.getElementById('tempC').checked;
+            const showTempK = document.getElementById('tempK').checked;
+            
+            if (tempChart) tempChart.destroy();
+            
+            // Подготавливаем данные для графика
+            const tempLabels = data.map(d => d.h); // высоты для оси Y
+            const tempDatasets = [];
+            
+            if (showTempC) {
+                tempDatasets.push({
+                    label: '°C',
+                    data: data.map(d => d.T_C),
+                    borderColor: '#ff6b1a',
+                    backgroundColor: 'rgba(255,107,26,0.1)',
+                    borderWidth: 2,
+                    fill: false,
+                    pointRadius: 0,
+                    tension: 0.3
+                });
+            }
+            if (showTempK) {
+                tempDatasets.push({
+                    label: 'K',
+                    data: data.map(d => d.T_K),
+                    borderColor: '#ffaa44',
+                    backgroundColor: 'rgba(255,170,68,0.1)',
+                    borderWidth: 2,
+                    fill: false,
+                    pointRadius: 0,
+                    tension: 0.3
+                });
+            }
+            
+            if (tempDatasets.length > 0) {
+                const canvas = document.getElementById('tempChart');
+                const ctx = canvas.getContext('2d');
+                
+                tempChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: tempLabels,
+                        datasets: tempDatasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        parsing: {
+                            xAxisKey: 'data',
+                            yAxisKey: 'labels'
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Температура', color: '#999' },
+                                ticks: { color: '#ccc' }
+                            },
+                            y: {
+                                title: { display: true, text: 'Высота (м)', color: '#999' },
+                                ticks: { color: '#ccc', stepSize: 5000 },
+                                reverse: true
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                labels: { color: '#fff', font: { size: 10 } },
+                                position: 'top'
+                            }
+                        }
+                    }
+                });
+            }
 
             <!-- График давления -->
             <div class="rounded-xl tech-border p-4">
