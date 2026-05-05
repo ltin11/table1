@@ -321,9 +321,16 @@
                 tbody.appendChild(tr);
             });
             
-            // График температуры
+                                    // График температуры
+            console.log('=== ГРАФИК ТЕМПЕРАТУРЫ ===');
+            console.log('ПЕРВЫЕ 5 ТОЧЕК:');
+            data.slice(0, 5).forEach(d => {
+                console.log(`h=${d.h}м, T_C=${d.T_C.toFixed(1)}°C, T_K=${d.T_K.toFixed(1)}K`);
+            });
+            
             const showTempC = document.getElementById('tempC').checked;
             const showTempK = document.getElementById('tempK').checked;
+            console.log('showTempC:', showTempC, 'showTempK:', showTempK);
             
             const tempDatasets = [];
             if (showTempC) {
@@ -354,7 +361,19 @@
             if (tempChart) tempChart.destroy();
             
             if (tempDatasets.length > 0) {
-                const ctx = document.getElementById('tempChart').getContext('2d');
+                console.log('Количество datasets:', tempDatasets.length);
+                console.log('Первый dataset (первые 3 точки):', JSON.stringify(tempDatasets[0].data.slice(0, 3)));
+                
+                const canvas = document.getElementById('tempChart');
+                console.log('Canvas найден:', canvas);
+                console.log('Размер canvas до:', canvas.width, 'x', canvas.height);
+                canvas.width = 400;
+                canvas.height = 320;
+                canvas.style.width = '100%';
+                canvas.style.height = '320px';
+                console.log('Размер canvas после:', canvas.width, 'x', canvas.height);
+                
+                const ctx = canvas.getContext('2d');
                 tempChart = new Chart(ctx, {
                     type: 'line',
                     data: { datasets: tempDatasets },
@@ -363,19 +382,19 @@
                         maintainAspectRatio: false,
                         plugins: {
                             legend: {
-                                labels: { color: '#fff', font: { size: 10 }, usePointStyle: true, boxWidth: 10 },
+                                labels: { color: '#fff', font: { size: 10 } },
                                 position: 'top'
                             },
                             tooltip: { mode: 'index', intersect: false }
                         },
                         scales: {
                             x: {
-                                title: { display: true, text: 'Температура', color: '#999', font: { size: 11 } },
-                                ticks: { color: '#ccc', font: { size: 9 } }
+                                title: { display: true, text: 'Температура', color: '#999' },
+                                ticks: { color: '#ccc' }
                             },
                             y: {
-                                title: { display: true, text: 'Высота (м)', color: '#999', font: { size: 11 } },
-                                ticks: { color: '#ccc', font: { size: 9 }, stepSize: 10000 },
+                                title: { display: true, text: 'Высота (м)', color: '#999' },
+                                ticks: { color: '#ccc', stepSize: 10000 },
                                 reverse: true,
                                 min: 0,
                                 max: 80000
@@ -383,6 +402,9 @@
                         }
                     }
                 });
+                console.log('График температуры создан!');
+            } else {
+                console.log('Нет выбранных параметров для графика температуры');
             }
             
             // График давления
