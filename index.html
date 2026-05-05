@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Стратосферные системы | Атмосферный калькулятор ГОСТ 24631-81</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0a0a0a; color: #ffffff; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .tech-border { border: 1px solid #333333; box-shadow: 0 1px 3px 0 rgba(255, 255, 255, 0.05); background-color: #111111; }
+        .tech-input { transition: all 0.2s; border: 1px solid #333333; background-color: #1a1a1a; color: #ffffff; }
+        .tech-input:focus { outline: none; border-color: #ff6b1a; box-shadow: 0 0 0 3px rgba(255, 107, 26, 0.2); }
+        .primary-btn { background-color: #ff6b1a; transition: all 0.2s; color: #ffffff; }
+        .primary-btn:hover { background-color: #e05a0f; transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgba(255, 107, 26, 0.3); }
+        .table-container { overflow-x: auto; max-height: 500px; overflow-y: auto; border-radius: 0.5rem; border: 1px solid #333333; }
+        table { border-collapse: collapse; width: 100%; min-width: 900px; }
+        th { background-color: #1a1a1a; color: #ffffff; font-weight: 600; text-align: left; padding: 0.75rem 1rem; font-size: 0.75rem; border-bottom: 1px solid #333333; position: sticky; top: 0; z-index: 10; }
+        td { padding: 0.75rem 1rem; border-bottom: 1px solid #222222; font-size: 0.875rem; color: #cccccc; font-family: 'JetBrains Mono', monospace; }
+        tr:hover { background-color: #1a1a1a; }
+        .chart-container { background-color: #111111; border-radius: 0.5rem; padding: 1rem; border: 1px solid #333333; }
+        canvas { max-height: 400px; width: 100% !important; }
+        .param-checkbox { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; cursor: pointer; font-size: 0.75rem; }
+        .param-checkbox input { cursor: pointer; accent-color: #ff6b1a; width: 0.9rem; height: 0.9rem; margin: 0; }
+        .param-checkbox span { color: #cccccc; transition: color 0.2s; }
+        .param-checkbox:hover span { color: #ffffff; }
+        .check-group { background-color: #1a1a1a; border-radius: 0.5rem; padding: 0.5rem; border: 1px solid #333333; margin-top: 0.5rem; }
+        .airship-header { display: flex; align-items: center; gap: 15px; }
+        .airship-icon { width: 90px; height: 55px; position: relative; animation: float 6s ease-in-out infinite; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.2)); }
+        .airship-hull { position: absolute; width: 80px; height: 40px; border: 2px solid rgba(255, 255, 255, 0.95); border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%; top: 5px; left: 5px; background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01)); box-shadow: 0 0 20px rgba(255, 255, 255, 0.15); }
+        .airship-gondola { position: absolute; width: 26px; height: 18px; border: 2px solid rgba(255, 255, 255, 0.9); border-radius: 6px 6px 10px 10px; bottom: -4px; left: 28px; background: rgba(255, 255, 255, 0.05); }
+        .airship-tail-vertical { position: absolute; width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 20px solid rgba(255, 255, 255, 0.8); right: -2px; top: 8px; transform: rotate(5deg); }
+        @keyframes float { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-10px) rotate(1.5deg); } }
+        .airship-line1 { font-size: 1.6rem; font-weight: 300; letter-spacing: 4px; }
+        .airship-line2 { font-size: 2rem; font-weight: 300; letter-spacing: 4px; text-shadow: 0 0 15px rgba(255, 107, 26, 0.3); }
+        @media (max-width: 768px) {
+            .airship-line1 { font-size: 1rem; }
+            .airship-line2 { font-size: 1.2rem; }
+            th, td { padding: 0.5rem; font-size: 0.7rem; }
+        }
+    </style>
+</head>
+<body class="min-h-screen" style="background-color: #0a0a0a;">
+    <header class="border-b sticky top-0 z-50" style="background-color: #0a0a0a; border-color: #333333;">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="airship-header">
+                <div class="airship-icon">
+                    <div class="airship-hull"></div>
+                    <div class="airship-gondola"></div>
+                    <div class="airship-tail-vertical"></div>
+                </div>
+                <div class="airship-text">
+                    <span class="airship-line1">СТРАТОСФЕРНЫЕ</span>
+                    <span class="airship-line2">СИСТЕМЫ</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Левая панель -->
+            <div class="lg:col-span-4 space-y-6">
+                <div class="rounded-xl tech-border p-5">
+                    <h2 class="text-lg font-semibold mb-5 flex items-center gap-2">
+                        <i data-lucide="sliders-horizontal" style="color: #ff6b1a;" class="w-5 h-5"></i>
+                        Параметры атмосферы
+                    </h2>
+                    <form id="calcForm" class="space-y-4" onsubmit="event.preventDefault(); generateAll();">
+                        <div>
+                            <label class="block text-sm font-medium mb-1.5" style="color: #cccccc;">Географическая широта</label>
+                            <select id="latitudeSelect" class="tech-input w-full rounded-lg px-3 py-2 text-sm">
+                                <option value="15">15° (тропики)</option>
+                                <option value="30">30° (субтропики)</option>
+                                <option value="45" selected>45° (умеренные)</option>
+                                <option value="60">60° (субарктика)</option>
+                                <option value="80">80° (арктика)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1.5" style="color: #cccccc;">Время года</label>
+                            <select id="seasonSelect" class="tech-input w-full rounded-lg px-3 py-2 text-sm">
+                                <option value="summer">Лето</option>
+                                <option value="winter">Зима</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1.5" style="color: #cccccc;">Шаг сетки по высоте</label>
+                            <select id="stepSelect" class="tech-input w-full rounded-lg px-3 py-2 text-sm">
+                                <option value="100">100 метров</option>
+                                <option value="250">250 метров</option>
+                                <option value="500" selected>500 метров</option>
+                                <option value="1000">1000 метров</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="primary-btn w-full font-semibold py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 mt-3 text-sm">
+                            <i data-lucide="play" class="w-4 h-4"></i>
+                            Построить таблицу и графики
+                        </button>
+                    </form>
+                </div>
+
+                <div class="rounded-xl p-5 text-sm" style="background-color: #111111; border: 1px solid #333333;">
+                    <h3 class="font-semibold mb-3 flex items-center gap-2">
+                        <i data-lucide="info" style="color: #ff6b1a;" class="w-4 h-4"></i>
+                        Справка
+                    </h3>
+                    <ul class="space-y-2 text-xs leading-relaxed" style="color: #999999;">
+                        <li>• Расчёт по ГОСТ 24631-81</li>
+                        <li>• Высота до 80 км с выбранным шагом</li>
+                        <li>• Графики перевёрнуты: высота по Y</li>
+                        <li>• Выбирайте единицы для каждого графика</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Правая панель: таблица -->
+            <div class="lg:col-span-8">
+                <div class="rounded-xl tech-border p-6 h-full">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <i data-lucide="table" style="color: #ff6b1a;" class="w-5 h-5"></i>
+                        Таблица атмосферных параметров
+                    </h2>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Высота (м)</th><th>T (°C)</th><th>T (K)</th><th>P (Па)</th><th>P (гПа)</th><th>P (мм рт.ст.)</th><th>ρ (кг/м³)</th><th>ρ (г/см³)</th><th>Скорость звука (м/с)</th></tr>
+                            </thead>
+                            <tbody id="tableBody"><tr><td colspan="9" class="text-center">Загрузка...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Три графика -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- График температуры -->
+            <div class="rounded-xl tech-border p-4">
+                <h3 class="text-md font-semibold mb-3 flex items-center gap-2 justify-between">
+                    <span><i data-lucide="thermometer" style="color: #ff6b1a;" class="w-4 h-4 inline"></i> Температура T(h)</span>
+                </h3>
+                <div class="check-group">
+                    <label class="param-checkbox"><input type="checkbox" id="tempC" checked> <span>°C</span></label>
+                    <label class="param-checkbox"><input type="checkbox" id="tempK"> <span>K</span></label>
+                </div>
+                <div class="chart-container mt-3"><canvas id="tempChart" style="height: 320px;"></canvas></div>
+            </div>
+
+            <!-- График давления -->
+            <div class="rounded-xl tech-border p-4">
+                <h3 class="text-md font-semibold mb-3 flex items-center gap-2">
+                    <span><i data-lucide="gauge" style="color: #44aaff;" class="w-4 h-4 inline"></i> Давление P(h)</span>
+                </h3>
+                <div class="check-group">
+                    <label class="param-checkbox"><input type="checkbox" id="pressurePa"> <span>Па</span></label>
+                    <label class="param-checkbox"><input type="checkbox" id="pressureHPa" checked> <span>гПа</span></label>
+                    <label class="param-checkbox"><input type="checkbox" id="pressureMmHg"> <span>мм рт.ст.</span></label>
+                </div>
+                <div class="chart-container mt-3"><canvas id="pressureChart" style="height: 320px;"></canvas></div>
+            </div>
+
+            <!-- График плотности -->
+            <div class="rounded-xl tech-border p-4">
+                <h3 class="text-md font-semibold mb-3 flex items-center gap-2">
+                    <span><i data-lucide="archive" style="color: #aaff44;" class="w-4 h-4 inline"></i> Плотность ρ(h)</span>
+                </h3>
+                <div class="check-group">
+                    <label class="param-checkbox"><input type="checkbox" id="densityKgm3" checked> <span>кг/м³</span></label>
+                    <label class="param-checkbox"><input type="checkbox" id="densityGcm3"> <span>г/см³</span></label>
+                </div>
+                <div class="chart-container mt-3"><canvas id="densityChart" style="height: 320px;"></canvas></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const CONST = { M_c: 28.964420, R_star: 8314.32, T_0: 273.15, Pa_to_mmHg: 0.00750062, Pa_to_hPa: 0.01, Kg_to_g: 1000 };
+        
+        const ATMOSPHERE_DATA = {
+            15: { annual: [{h:0,T:299.65,p:101325},{h:1000,T:293.65,p:90328},{h:2000,T:287.68,p:80384},{h:3000,T:283.65,p:71320},{h:4000,T:276.98,p:63163},{h:5000,T:270.30,p:55875},{h:6000,T:263.63,p:49100},{h:7000,T:256.96,p:43085},{h:8000,T:250.29,p:37679},{h:9000,T:243.63,p:32834},{h:10000,T:236.96,p:28503},{h:12000,T:223.64,p:21221},{h:14000,T:210.33,p:15518},{h:16000,T:197.02,p:11120},{h:18000,T:198.78,p:7864},{h:20000,T:206.71,p:5629},{h:22000,T:214.64,p:4082},{h:24000,T:218.86,p:2988},{h:26000,T:222.82,p:2199},{h:28000,T:226.77,p:1628},{h:30000,T:230.73,p:1212},{h:32000,T:236.09,p:907.5},{h:34000,T:241.62,p:684.2},{h:36000,T:247.15,p:519.2},{h:38000,T:252.67,p:396.5},{h:40000,T:258.19,p:304.6},{h:42000,T:262.73,p:235.2},{h:44000,T:267.06,p:182.5},{h:46000,T:271.39,p:142.2},{h:48000,T:272.35,p:111.1},{h:50000,T:272.35,p:86.84},{h:52000,T:271.25,p:67.87},{h:54000,T:266.54,p:52.89},{h:56000,T:261.01,p:41.03},{h:58000,T:255.13,p:31.65},{h:60000,T:249.25,p:24.28},{h:62000,T:242.75,p:18.50},{h:64000,T:235.91,p:13.99},{h:66000,T:229.06,p:10.49},{h:68000,T:222.79,p:7.812},{h:70000,T:216.93,p:5.768},{h:72000,T:211.07,p:4.224},{h:74000,T:205.22,p:3.067},{h:76000,T:203.23,p:2.214},{h:78000,T:201.28,p:1.593},{h:80000,T:199.33,p:1.143}] },
+            30: { summer: [{h:0,T:297.15,p:101400},{h:1000,T:292.65,p:90323},{h:2000,T:288.16,p:80316},{h:3000,T:282.18,p:71267},{h:4000,T:276.20,p:63077},{h:5000,T:270.21,p:55682},{h:6000,T:264.23,p:49019},{h:7000,T:258.25,p:43029},{h:8000,T:252.28,p:37657},{h:9000,T:245.33,p:32844},{h:10000,T:238.36,p:28534},{h:12000,T:224.42,p:21267},{h:14000,T:210.50,p:15558},{h:16000,T:206.65,p:11210},{h:18000,T:209.05,p:8079},{h:20000,T:214.22,p:5863},{h:22000,T:219.37,p:4289},{h:24000,T:222.47,p:3157},{h:26000,T:225.44,p:2333},{h:28000,T:228.41,p:1732},{h:30000,T:232.11,p:1291},{h:32000,T:236.86,p:967.5},{h:34000,T:241.60,p:729.5},{h:36000,T:246.35,p:553.2},{h:38000,T:251.08,p:421.8},{h:40000,T:255.82,p:323.3},{h:42000,T:260.55,p:249.1},{h:44000,T:265.28,p:192.8},{h:46000,T:270.01,p:149.9},{h:48000,T:273.35,p:117.1},{h:50000,T:273.35,p:91.61},{h:52000,T:271.98,p:71.64},{h:54000,T:266.68,p:55.84},{h:56000,T:261.38,p:43.31},{h:58000,T:256.08,p:33.43},{h:60000,T:250.79,p:25.66},{h:62000,T:243.79,p:19.58},{h:64000,T:235.95,p:14.82},{h:66000,T:228.13,p:11.11},{h:68000,T:220.30,p:8.245},{h:70000,T:212.48,p:6.056},{h:72000,T:207.08,p:4.402},{h:74000,T:203.57,p:3.181},{h:76000,T:200.05,p:2.286},{h:78000,T:196.54,p:1.634},{h:80000,T:193.04,p:1.161}], winter: [{h:0,T:283.15,p:102050},{h:1000,T:281.65,p:90439},{h:2000,T:280.16,p:80100},{h:3000,T:273.79,p:70823},{h:4000,T:267.40,p:62443},{h:5000,T:261.02,p:54888},{h:6000,T:254.64,p:48096},{h:7000,T:248.26,p:42005},{h:8000,T:241.88,p:36558},{h:9000,T:235.51,p:31701},{h:10000,T:229.14,p:27383},{h:12000,T:216.40,p:20178},{h:14000,T:212.25,p:14694},{h:16000,T:208.27,p:10638},{h:18000,T:207.15,p:7668},{h:20000,T:210.97,p:5543},{h:22000,T:214.94,p:4032},{h:24000,T:218.90,p:2950},{h:26000,T:222.50,p:2171},{h:28000,T:226.06,p:1606},{h:30000,T:229.62,p:1193},{h:32000,T:233.18,p:891.1},{h:34000,T:236.74,p:668.5},{h:36000,T:241.52,p:504.1},{h:38000,T:246.46,p:382.3},{h:40000,T:251.39,p:291.6},{h:42000,T:256.32,p:223.7},{h:44000,T:261.24,p:172.4},{h:46000,T:266.17,p:133.6},{h:48000,T:269.65,p:104.0},{h:50000,T:269.65,p:81.12},{h:52000,T:265.73,p:63.31},{h:54000,T:260.63,p:48.96},{h:56000,T:255.53,p:37.77},{h:58000,T:250.42,p:28.99},{h:60000,T:245.32,p:22.13},{h:62000,T:240.23,p:16.81},{h:64000,T:235.14,p:12.69},{h:66000,T:230.05,p:9.522},{h:68000,T:224.96,p:7.102},{h:70000,T:219.88,p:5.265},{h:72000,T:215.24,p:3.873},{h:74000,T:210.95,p:2.834},{h:76000,T:206.66,p:2.060},{h:78000,T:202.37,p:1.488},{h:80000,T:198.08,p:1.068}] },
+            45: { summer: [{h:0,T:291.15,p:101350},{h:1000,T:286.65,p:90048},{h:2000,T:282.15,p:79860},{h:3000,T:276.16,p:70668},{h:4000,T:270.17,p:62368},{h:5000,T:264.17,p:54891},{h:6000,T:258.18,p:48172},{h:7000,T:252.20,p:42147},{h:8000,T:246.21,p:36759},{h:9000,T:240.23,p:31954},{h:10000,T:234.24,p:27680},{h:12000,T:222.29,p:20540},{h:14000,T:216.15,p:15026},{h:16000,T:216.15,p:10970},{h:18000,T:217.29,p:8014},{h:20000,T:219.68,p:5872},{h:22000,T:222.06,p:4319},{h:24000,T:224.44,p:3187},{h:26000,T:227.54,p:2360},{h:28000,T:231.50,p:1757},{h:30000,T:235.47,p:1315},{h:32000,T:240.17,p:989.2},{h:34000,T:244.92,p:748.2},{h:36000,T:249.66,p:569.5},{h:38000,T:254.41,p:435.6},{h:40000,T:259.15,p:334.9},{h:42000,T:263.89,p:258.8},{h:44000,T:268.62,p:200.9},{h:46000,T:273.36,p:156.7},{h:48000,T:276.55,p:122.7},{h:50000,T:276.55,p:96.20},{h:52000,T:275.05,p:75.42},{h:54000,T:269.93,p:58.94},{h:56000,T:264.82,p:45.85},{h:58000,T:259.71,p:35.49},{h:60000,T:254.61,p:27.35},{h:62000,T:246.99,p:20.94},{h:64000,T:238.36,p:15.89},{h:66000,T:229.73,p:11.93},{h:68000,T:221.12,p:8.869},{h:70000,T:212.51,p:6.515},{h:72000,T:205.57,p:4.730},{h:74000,T:199.71,p:3.402},{h:76000,T:193.84,p:2.423},{h:78000,T:187.99,p:1.709},{h:80000,T:182.13,p:1.192}], winter: [{h:0,T:272.65,p:101800},{h:1000,T:268.65,p:89729},{h:2000,T:264.65,p:78944},{h:3000,T:260.66,p:69322},{h:4000,T:254.67,p:60722},{h:5000,T:248.67,p:53024},{h:6000,T:242.68,p:46152},{h:7000,T:236.70,p:40032},{h:8000,T:230.71,p:34599},{h:9000,T:224.73,p:29791},{h:10000,T:218.74,p:25549},{h:12000,T:217.86,p:18701},{h:14000,T:217.06,p:13676},{h:16000,T:216.27,p:9992},{h:18000,T:215.47,p:7294},{h:20000,T:215.45,p:5321},{h:22000,T:215.45,p:3883},{h:24000,T:215.45,p:2834},{h:26000,T:215.45,p:2069},{h:28000,T:215.45,p:1511},{h:30000,T:219.73,p:1107},{h:32000,T:224.28,p:815.9},{h:34000,T:228.83,p:605.4},{h:36000,T:233.62,p:451.9},{h:38000,T:238.76,p:339.5},{h:40000,T:243.90,p:256.7},{h:42000,T:249.03,p:195.2},{h:44000,T:254.16,p:149.3},{h:46000,T:259.29,p:114.9},{h:48000,T:262.75,p:88.80},{h:50000,T:262.75,p:68.74},{h:52000,T:261.83,p:53.21},{h:54000,T:258.68,p:41.10},{h:56000,T:255.53,p:31.65},{h:58000,T:252.39,p:24.30},{h:60000,T:249.25,p:18.60},{h:62000,T:245.41,p:14.18},{h:64000,T:241.29,p:10.77},{h:66000,T:237.17,p:8.141},{h:68000,T:233.06,p:6.125},{h:70000,T:228.95,p:4.586},{h:72000,T:224.84,p:3.416},{h:74000,T:220.74,p:2.531},{h:76000,T:216.64,p:1.865},{h:78000,T:212.54,p:1.367},{h:80000,T:208.44,p:0.996}] },
+            60: { summer: [{h:0,T:282.15,p:101020},{h:1000,T:277.95,p:89406},{h:2000,T:273.74,p:78983},{h:3000,T:269.54,p:69645},{h:4000,T:265.34,p:61291},{h:5000,T:261.13,p:53832},{h:6000,T:254.14,p:47150},{h:7000,T:247.14,p:41169},{h:8000,T:240.15,p:35768},{h:9000,T:233.16,p:30966},{h:10000,T:226.17,p:26692},{h:12000,T:226.15,p:19745},{h:14000,T:226.15,p:14609},{h:16000,T:226.15,p:10810},{h:18000,T:226.15,p:8001},{h:20000,T:226.15,p:5923},{h:22000,T:226.15,p:4386},{h:24000,T:227.56,p:3249},{h:26000,T:230.54,p:2416},{h:28000,T:233.52,p:1804},{h:30000,T:236.50,p:1352},{h:32000,T:239.47,p:1017},{h:34000,T:245.24,p:768.8},{h:36000,T:251.18,p:585.3},{h:38000,T:257.12,p:448.6},{h:40000,T:263.05,p:345.9},{h:42000,T:268.98,p:268.4},{h:44000,T:274.91,p:209.4},{h:46000,T:280.83,p:164.2},{h:48000,T:281.65,p:129.3},{h:50000,T:281.65,p:101.8},{h:52000,T:280.17,p:80.12},{h:54000,T:275.64,p:62.89},{h:56000,T:271.11,p:49.17},{h:58000,T:266.59,p:38.30},{h:60000,T:262.07,p:29.70},{h:62000,T:253.85,p:22.91},{h:64000,T:244.42,p:17.50},{h:66000,T:235.00,p:13.23},{h:68000,T:225.59,p:9.891},{h:70000,T:216.18,p:7.304},{h:72000,T:206.78,p:5.323},{h:74000,T:197.39,p:3.823},{h:76000,T:188.00,p:2.702},{h:78000,T:178.61,p:1.877},{h:80000,T:169.23,p:1.279}], winter: [{h:0,T:256.15,p:101300},{h:1000,T:258.15,p:88684},{h:2000,T:254.14,p:77603},{h:3000,T:250.14,p:67765},{h:4000,T:244.64,p:59022},{h:5000,T:239.14,p:51249},{h:6000,T:233.64,p:44355},{h:7000,T:228.14,p:38259},{h:8000,T:222.65,p:32883},{h:9000,T:217.16,p:28158},{h:10000,T:217.15,p:24065},{h:12000,T:217.15,p:17581},{h:14000,T:217.15,p:12846},{h:16000,T:216.66,p:9387},{h:18000,T:215.66,p:6852},{h:20000,T:214.67,p:4995},{h:22000,T:213.67,p:3637},{h:24000,T:212.68,p:2644},{h:26000,T:212.80,p:1921},{h:28000,T:214.19,p:1398},{h:30000,T:215.58,p:1019},{h:32000,T:216.97,p:745.6},{h:34000,T:218.35,p:546.3},{h:36000,T:221.09,p:401.2},{h:38000,T:225.64,p:296.4},{h:40000,T:230.19,p:220.4},{h:42000,T:234.74,p:164.8},{h:44000,T:239.28,p:123.9},{h:46000,T:243.83,p:93.75},{h:48000,T:248.36,p:71.29},{h:50000,T:251.35,p:54.46},{h:52000,T:250.71,p:41.66},{h:54000,T:248.74,p:31.82},{h:56000,T:246.77,p:24.26},{h:58000,T:244.80,p:18.45},{h:60000,T:242.84,p:14.01},{h:62000,T:240.87,p:10.61},{h:64000,T:238.91,p:8.026},{h:66000,T:236.94,p:6.055},{h:68000,T:234.98,p:4.559},{h:70000,T:233.02,p:3.424},{h:72000,T:231.07,p:2.566},{h:74000,T:229.11,p:1.919},{h:76000,T:227.15,p:1.432},{h:78000,T:225.20,p:1.066},{h:80000,T:223.24,p:0.791}] },
+            80: { summer: [{h:0,T:276.65,p:101200},{h:1000,T:272.54,p:89335},{h:2000,T:268.43,p:78716},{h:3000,T:264.33,p:69226},{h:4000,T:260.20,p:60761},{h:5000,T:253.80,p:53190},{h:6000,T:247.39,p:46407},{h:7000,T:240.99,p:40345},{h:8000,T:234.59,p:34945},{h:9000,T:228.26,p:30150},{h:10000,T:228.75,p:25965},{h:12000,T:229.75,p:19279},{h:14000,T:230.75,p:14336},{h:16000,T:231.50,p:10675},{h:18000,T:232.00,p:7956},{h:20000,T:232.50,p:5934},{h:22000,T:232.99,p:4429},{h:24000,T:234.46,p:3311},{h:26000,T:236.95,p:2481},{h:28000,T:239.43,p:1866},{h:30000,T:241.92,p:1407},{h:32000,T:244.40,p:1065},{h:34000,T:249.64,p:809.1},{h:36000,T:254.99,p:618.6},{h:38000,T:260.31,p:475.6},{h:40000,T:265.69,p:367.7},{h:42000,T:271.03,p:285.8},{h:44000,T:276.37,p:223.3},{h:46000,T:279.60,p:175.2},{h:48000,T:279.60,p:137.6},{h:50000,T:279.60,p:108.1},{h:52000,T:279.60,p:84.97},{h:54000,T:275.78,p:66.71},{h:56000,T:269.37,p:52.11},{h:58000,T:262.97,p:40.47},{h:60000,T:256.57,p:31.24},{h:62000,T:248.76,p:23.95},{h:64000,T:239.72,p:18.19},{h:66000,T:230.68,p:13.68},{h:68000,T:221.65,p:10.17},{h:70000,T:212.61,p:7.465},{h:72000,T:203.60,p:5.410},{h:74000,T:195.11,p:3.865},{h:76000,T:189.24,p:2.729},{h:78000,T:183.37,p:1.906},{h:80000,T:177.50,p:1.316}], winter: [{h:0,T:248.95,p:101380},{h:1000,T:253.04,p:88452},{h:2000,T:250.24,p:77202},{h:3000,T:247.41,p:67283},{h:4000,T:240.90,p:58486},{h:5000,T:234.40,p:50647},{h:6000,T:227.89,p:43683},{h:7000,T:221.39,p:37518},{h:8000,T:214.94,p:32078},{h:9000,T:213.89,p:27355},{h:10000,T:212.81,p:23309},{h:12000,T:210.74,p:16877},{h:14000,T:208.65,p:12198},{h:16000,T:206.55,p:8784},{h:18000,T:204.46,p:6305},{h:20000,T:202.37,p:4512},{h:22000,T:202.35,p:3223},{h:24000,T:205.29,p:2307},{h:26000,T:209.27,p:1662},{h:28000,T:213.24,p:1205},{h:30000,T:217.21,p:879.3},{h:32000,T:221.19,p:645.2},{h:34000,T:224.59,p:476.1},{h:36000,T:227.77,p:352.9},{h:38000,T:230.93,p:262.7},{h:40000,T:234.11,p:196.3},{h:42000,T:237.27,p:147.4},{h:44000,T:240.44,p:111.1},{h:46000,T:243.60,p:84.01},{h:48000,T:246.76,p:63.80},{h:50000,T:247.15,p:48.56},{h:52000,T:247.15,p:36.97},{h:54000,T:246.41,p:28.14},{h:56000,T:244.24,p:21.39},{h:58000,T:242.07,p:16.22},{h:60000,T:239.91,p:12.27},{h:62000,T:237.74,p:9.259},{h:64000,T:235.58,p:6.972},{h:66000,T:233.42,p:5.237},{h:68000,T:231.26,p:3.924},{h:70000,T:229.10,p:2.932},{h:72000,T:226.94,p:2.186},{h:74000,T:224.79,p:1.625},{h:76000,T:222.63,p:1.205},{h:78000,T:220.48,p:0.8911},{h:80000,T:218.33,p:0.6571}] }
+        };
+
+        function cubicInterpolate(p,x){if(p.length===0)return null;if(x<=p[0].h)return p[0];if(x>=p[p.length-1].h)return p[p.length-1];let i=0;for(;i<p.length-1;i++)if(x>=p[i].h&&x<=p[i+1].h)break;const i0=Math.max(0,i-1),i1=i,i2=i+1,i3=Math.min(p.length-1,i+2),x0=p[i0].h,y0T=p[i0].T,y0p=p[i0].p,x1=p[i1].h,y1T=p[i1].T,y1p=p[i1].p,x2=p[i2].h,y2T=p[i2].T,y2p=p[i2].p,x3=p[i3].h,y3T=p[i3].T,y3p=p[i3].p,dx=x2-x1;if(Math.abs(dx)<1e-10)return p[i1];const t=(x-x1)/dx,t2=t*t,t3=t2*t,m0T=(y2T-y0T)/(x2-x0),m1T=(y3T-y1T)/(x3-x1),T=(2*t3-3*t2+1)*y1T+(t3-2*t2+t)*m0T*dx+(t3-t2)*m1T*dx+(-2*t3+3*t2)*y2T,m0p=(y2p-y0p)/(x2-x0),m1p=(y3p-y1p)/(x3-x1),pVal=(2*t3-3*t2+1)*y1p+(t3-2*t2+t)*m0p*dx+(t3-t2)*m1p*dx+(-2*t3+3*t2)*y2p;return{T:T,p:pVal}}
+        function getAtmosphereTable(lat,season){let l=Math.min(80,Math.max(15,Math.round(lat/15)*15));if(!ATMOSPHERE_DATA[l])l=45;if(season==='summer'&&ATMOSPHERE_DATA[l].summer)return ATMOSPHERE_DATA[l].summer;if(season==='winter'&&ATMOSPHERE_DATA[l].winter)return ATMOSPHERE_DATA[l].winter;return ATMOSPHERE_DATA[l].annual||ATMOSPHERE_DATA[l].summer||ATMOSPHERE_DATA[45].summer}
+        function getValueFromTable(t,h){if(!t||!t.length)return{T:288.15,p:101325};const s=[...t].sort((a,b)=>a.h-b.h),r=cubicInterpolate(s,h);return r||{T:s[0].T,p:s[0].p}}
+        function calculateSoundSpeed(T){return 20.046796*Math.sqrt(T)}
+        function calculateDensity(p,T){return(p*CONST.M_c)/(CONST.R_star*T)}
+        
+        let tempChart, pressureChart, densityChart;
+
+        function generateAll(){
+            const lat=parseFloat(document.getElementById('latitudeSelect').value),season=document.getElementById('seasonSelect').value,step=parseInt(document.getElementById('stepSelect').value),table=getAtmosphereTable(lat,season),heights=[];
+            for(let h=0;h<=80000;h+=step)heights.push(h);
+            const data=heights.map(h=>{const{T:T_K,p:p_Pa}=getValueFromTable(table,h),rho=calculateDensity(p_Pa,T_K),sound=calculateSoundSpeed(T_K),p_hPa=p_Pa*CONST.Pa_to_hPa,p_mmHg=p_Pa*CONST.Pa_to_mmHg,rho_gcm3=rho/CONST.Kg_to_g;return{h,T_C:T_K-CONST.T_0,T_K,p_Pa,p_hPa,p_mmHg,rho,rho_gcm3,sound}});
+            
+            // Таблица
+            const tbody=document.getElementById('tableBody');
+            tbody.innerHTML='';
+            data.forEach(row=>{const tr=document.createElement('tr');tr.innerHTML=`<td class="mono">${row.h.toFixed(0)}</td><td class="mono">${row.T_C.toFixed(1)}</td><td class="mono">${row.T_K.toFixed(2)}</td><td class="mono">${row.p_Pa.toFixed(0)}</td><td class="mono">${row.p_hPa.toFixed(2)}</td><td class="mono">${row.p_mmHg.toFixed(2)}</td><td class="mono">${row.rho.toFixed(4)}</td><td class="mono">${row.rho_gcm3.toExponential(3)}</td><td class="mono">${row.sound.toFixed(1)}</td>`;tbody.appendChild(tr)});
+            
+            // График температуры - ИСПРАВЛЕН (reverse: false)
+            const showTempC=document.getElementById('tempC').checked,showTempK=document.getElementById('tempK').checked;
+            const tempDatasets=[];
+            if(showTempC)tempDatasets.push({label:'°C',data:data.map(d=>({x:d.T_C,y:d.h})),borderColor:'#ff6b1a',backgroundColor:'rgba(255,107,26,0.1)',borderWidth:2,fill:false,pointRadius:0,tension:0.3});
+            if(showTempK)tempDatasets.push({label:'K',data:data.map(d=>({x:d.T_K,y:d.h})),borderColor:'#ffaa44',backgroundColor:'rgba(255,170,68,0.1)',borderWidth:2,fill:false,pointRadius:0,tension:0.3});
+            if(tempChart)tempChart.destroy();
+            if(tempDatasets.length>0){
+                tempChart=new Chart(document.getElementById('tempChart'),{type:'line',data:{datasets:tempDatasets},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{labels:{color:'#fff',font:{size:10}},position:'top'},tooltip:{mode:'index',intersect:false}},scales:{x:{title:{display:true,text:'Температура',color:'#999'},ticks:{color:'#ccc'}},y:{title:{display:true,text:'Высота (м)',color:'#999'},ticks:{color:'#ccc'},reverse:false}}}});  // <--- reverse: false
+            }else{document.getElementById('tempChart').getContext('2d').clearRect(0,0,400,320);}
+            
+            // График давления - ИСПРАВЛЕН (reverse: false)
+            const showPa=document.getElementById('pressurePa').checked,showHPa=document.getElementById('pressureHPa').checked,showMmHg=document.getElementById('pressureMmHg').checked;
+            const presDatasets=[];
+            if(showPa)presDatasets.push({label:'Па',data:data.map(d=>({x:d.p_Pa,y:d.h})),borderColor:'#44aaff',backgroundColor:'rgba(68,170,255,0.1)',borderWidth:2,fill:false,pointRadius:0,tension:0.3});
+            if(showHPa)presDatasets.push({label:'гПа',data:data.map(d=>({x:d.p_hPa,y:d.h})),borderColor:'#44ffaa',backgroundColor:'rgba(68,255,170,0.1)',borderWidth:2,fill:false,pointRadius:0,tension:0.3});
+            if(showMmHg)presDatasets.push({label:'мм рт.ст.',data:data.map(d=>({x:d.p_mmHg,y:d.h})),borderColor:'#ff44aa',backgroundColor:'rgba(255,68,170,0.1)',borderWidth:2,fill:false,pointRadius:0,tension:0.3});
+            if(pressureChart)pressureChart.destroy();
+            if(presDatasets.length>0){
+                pressureChart=new Chart(document.getElementById('pressureChart'),{type:'line',data:{datasets:presDatasets},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{labels:{color:'#fff',font:{size:10}},position:'top'},tooltip:{mode:'index',intersect:false}},scales:{x:{type:'logarithmic',title:{display:true,text:'Давление',color:'#999'},ticks:{color:'#ccc',callback:function(val){return val.toExponential(2);}}},y:{title:{display:true,text:'Высота (м)',color:'#999'},ticks:{color:'#ccc'},reverse:false}}}});  // <--- reverse: false
+            }
+            
+            // График плотности - ИСПРАВЛЕН (reverse: false)
+            const showKgm3=document.getElementById('densityKgm3').checked,showGcm3=document.getElementById('densityGcm3').checked;
+            const densDatasets=[];
+            if(showKgm3)densDatasets.push({label:'кг/м³',data:data.map(d=>({x:d.rho,y:d.h})),borderColor:'#aaff44',backgroundColor:'rgba(170,255,68,0.1)',borderWidth:2,fill:false,pointRadius:0,tension:0.3});
+            if(showGcm3)densDatasets.push({label:'г/см³',data:data.map(d=>({x:d.rho_gcm3,y:d.h})),borderColor:'#aa44ff',backgroundColor:'rgba(170,68,255,0.1)',borderWidth:2,fill:false,pointRadius:0,tension:0.3});
+            if(densityChart)densityChart.destroy();
+            if(densDatasets.length>0){
+                densityChart=new Chart(document.getElementById('densityChart'),{type:'line',data:{datasets:densDatasets},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{labels:{color:'#fff',font:{size:10}},position:'top'},tooltip:{mode:'index',intersect:false}},scales:{x:{type:'logarithmic',title:{display:true,text:'Плотность',color:'#999'},ticks:{color:'#ccc'}},y:{title:{display:true,text:'Высота (м)',color:'#999'},ticks:{color:'#ccc'},reverse:false}}}});  // <--- reverse: false
+            }
+        }
+        
+        document.getElementById('calcForm').addEventListener('submit',e=>{e.preventDefault();generateAll();});
+        document.getElementById('latitudeSelect').addEventListener('change',generateAll);
+        document.getElementById('seasonSelect').addEventListener('change',generateAll);
+        document.getElementById('stepSelect').addEventListener('change',generateAll);
+        document.getElementById('tempC').addEventListener('change',generateAll);
+        document.getElementById('tempK').addEventListener('change',generateAll);
+        document.getElementById('pressurePa').addEventListener('change',generateAll);
+        document.getElementById('pressureHPa').addEventListener('change',generateAll);
+        document.getElementById('pressureMmHg').addEventListener('change',generateAll);
+        document.getElementById('densityKgm3').addEventListener('change',generateAll);
+        document.getElementById('densityGcm3').addEventListener('change',generateAll);
+        
+        lucide.createIcons();
+        generateAll();
+    </script>
+</body>
+</html>
